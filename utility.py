@@ -2,10 +2,7 @@ from scipy import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-c = 299792458*1e6
-t0 = 1e-12
-rtol = 1e-15
-atol = 1e-20
+
 
 def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
             grid_color='g',grid_style='--',grid_alpha=0.5):
