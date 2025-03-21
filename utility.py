@@ -2,7 +2,7 @@ from scipy import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+c=299792458e6
 
 def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
             grid_color='g',grid_style='--',grid_alpha=0.5):
@@ -31,6 +31,12 @@ def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
               plt.savefig(filename)
        return
 
+def create_x(x_min,x_max,dx):
+    N = int((x_max-x_min)/dx+1)
+    x = np.zeros(N)
+    for i in range(N):
+        x[i] = i*dx+x_min
+    return x
 if __name__=='__main__':
     x = np.linspace(0,10,1000)
     y = x**2
