@@ -29,6 +29,7 @@ def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
        ax.set_facecolor(figcolor)
        if(filename!=''):
               plt.savefig(filename)
+       plt.show()
        return
 
 def create_x(x_min,x_max,dx):
