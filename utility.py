@@ -38,6 +38,17 @@ def create_x(x_min,x_max,dx):
     for i in range(N):
         x[i] = i*dx+x_min
     return x
+
+def create_n(n_function,*args,threshold=1):
+    N = len(x)
+    n = np.zeros((len(x),1))
+    for i in range(N):
+        n[i] = n_function(args)
+        if ((n[i]-n[i-1]>=threshold) and (not i==1)):
+            n[i] = ( (n[i]**2+n[i-1]**2)/2 )**0.5
+    n = n.reshape((N,1))
+    return n
+
 if __name__=='__main__':
     x = np.linspace(0,10,1000)
     y = x**2
