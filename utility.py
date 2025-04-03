@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 c=299792458e6
 
-def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
-            grid_color='g',grid_style='--',grid_alpha=0.5):
+def ploting(x,*arg,x_label, title,filename='',figcolor='w',line_color='b',
+            grid_color='g',grid_style='--',grid_alpha=0.5,leg=['']):
        """
        input argments:
               x:x
@@ -21,7 +21,14 @@ def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
                         If unspecified, the figure will not be saved.
        """
        plt.figure()
-       plt.plot(x,y,color=line_color)
+       n=0
+       for i in arg:
+            if (not leg==['']):
+                plt.plot(x,i,label=leg[n])
+                plt.legend()
+            else:
+                plt.plot(x,i)
+            n+=1
        plt.xlabel(x_label)
        plt.title(title)
        plt.grid(color=grid_color,linestyle=grid_style, alpha=grid_alpha)
@@ -32,22 +39,8 @@ def ploting(x,y,x_label, title,filename='',figcolor='w',line_color='b',
        plt.show()
        return
 
-def create_x(x_min,x_max,dx):
-    N = int((x_max-x_min)/dx+1)
-    x = np.zeros(N)
-    for i in range(N):
-        x[i] = i*dx+x_min
-    return x
 
-def create_n(n_function,*args,threshold=1):
-    N = len(x)
-    n = np.zeros((len(x),1))
-    for i in range(N):
-        n[i] = n_function(args)
-        if ((n[i]-n[i-1]>=threshold) and (not i==1)):
-            n[i] = ( (n[i]**2+n[i-1]**2)/2 )**0.5
-    n = n.reshape((N,1))
-    return n
+
 
 if __name__=='__main__':
     x = np.linspace(0,10,1000)
