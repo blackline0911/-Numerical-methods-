@@ -4,9 +4,14 @@ import matplotlib.pyplot as plt
 import scipy 
 from utility import *
 
-def N(n1,n2):
-    return [ [(n2+n1)/2/n2, (n2-n1)/2/n2] ,[(n2-n1)/2/n2, (n2+n1)/2/n2]]
+def N(n1:float,n2:float):
+    n1 = float(n1)
+    n2 = float(n2)
+    return np.array([ [(n2+n1)/2/n2, (n2-n1)/2/n2] ,[(n2-n1)/2/n2, (n2+n1)/2/n2]])
 
+def P(wl:float,d:float,n:float):
+    n=float(n)
+    return np.array([ [np.exp(-1j*2*np.pi/wl*d*n),0], [0, np.exp(1j*2*np.pi/wl*d*n)] ] )
 def averaging(f):
     return sum(f)/len(f)
 
@@ -40,16 +45,20 @@ def n_function(x,x_min,x_max,n1,n2,n_medium,pad):
             return n_medium
         
 def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
+    
     k0 = 2*np.pi/wl
     ky = k0*np.sin(theta)
     kx = k0*np.cos(theta)
 
     x = create_x(x_min,x_max,dx)
+    # print(int((x_max-x_min)/dx))
+    # print(len(x))
     N = len(x)   # vector dimension
 
     n = create_n(n_function,x,x_min,x_max,*args)
 
     M = np.zeros((N,N)) + 1j*np.zeros((N,N))
+
     for i in range(1,N-1):
         for j in range(N):
             if i==j:
@@ -58,7 +67,6 @@ def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
                 M[i,j] = 1/dx**2
             if j==i-1 :
                 M[i,j] = 1/dx**2
-
     M[0,0] = 1/2 + 3/(2*dx*2*1j*kx*n[0])
     M[0,1] = -4/(2*dx*2*1j*kx*n[0])
     M[0,2] = 1/(2*dx*2*1j*kx*n[0])
@@ -81,10 +89,7 @@ def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
             du_dx[i] = 1/2/dx*(-3*U[i]+4*U[i+1]-U[i+2])
         else :
             du_dx[i] = 1/2/dx*(3*U[i]-4*U[i-1]+U[i-2])
-        # elif i==N-2:
-        #     du_dx[i] = 1/2/dx*(3*U[i]-4*U[i-1]+U[i-2])
-        # else:
-        #     du_dx[i] = 1/2/dx*(U[i+1]-U[i-1])
+        
 
     U_pos = U/2 - du_dx/(2*1j*kx_pround)
     U_neg = U/2 + du_dx/(2*1j*kx_pround)
@@ -101,7 +106,7 @@ if __name__=='__main__':
     wl = 1.5
     theta1 = 0
     n1 = 1.0
-    n2 = 1.0
+    n2 = 3.0
     # n2 = 1.0
     d = 5.0
     dx = 0.0025
@@ -122,17 +127,18 @@ if __name__=='__main__':
     ploting(x,n,x_label="x (um)",title="Index",filename="index")
     ploting(x,np.real(U),x_label="x (um)",title="E field_real",filename="E_real")
     ploting(x,np.imag(U),x_label="x (um)",title="E field_imag",filename="E_imag")
+    ploting(x,abs(U)**2,x_label="x (um)",title="E field_power",filename="E field_power")
     ploting(x,U_pos,x_label="x (um)",title="U_pos",filename="U_pos")
     ploting(x,U_neg,x_label="x (um)",title="U_neg",filename="U_neg")
     ploting(x,abs(U_pos)**2,x_label="x (um)",title=r'$|U pos|^2$',filename="U_pos_power")
     ploting(x,abs(U_neg)**2,x_label="x (um)",title=r'$|U neg|^2$',filename="U_neg_power")
 
-    # np.savetxt("n.txt", n, fmt="%.8f", delimiter="\t")
-    # np.savetxt("U.txt", U, fmt="%.8f", delimiter="\t")
     
-    R,T = calculate_RT(n1,n2,U_pos,U_neg,u0,x_min,x_max,pad,dx)
-    print("R = ", R)
-    print("T = ", T)
+    # R,T = calculate_RT(n1,n2,U_pos,U_neg,u0,x_min,x_max,pad,dx)
+    R = averaging((abs(U_neg[0:int(np.floor(abs(x_min+pad-x_min)/dx))]))**2)/u0**2
+    T = n2*averaging(abs(U_pos[int(np.ceil(abs(x_max-pad+pad)/dx)) : len(x)-1])**2)/(n1*u0**2)
+    print("R = ", R[0])
+    print("T = ", T[0])
     
     wl_nums = np.linspace(1/1.4,1/1.7,100) # 1/um
     Rs = np.zeros(len(wl_nums))
@@ -141,33 +147,35 @@ if __name__=='__main__':
     Ans_T = np.zeros(len(wl_nums))
     i=0
     
-    for wl_num in wl_nums:
-        U, U_pos, U_neg, n ,x = solve(n_function,1/wl_num,
-                                theta1,
-                                x_min,x_max,dx,
-                                u0,
-                                n1,
-                                n2,
-                                n_layer,
-                                pad,
-                                )
-        R,T = calculate_RT(n1,n2,U_pos,U_neg,u0,x_min,x_max,pad,dx)
-        Rs[i] = R
-        Ts[i] = T
-        # analytic solution
-        N1 = N(n1,n_layer)
-        N3 = N(n_layer,n2)
-        N2 = [ [np.exp(-1j*2*np.pi*wl_num*d/2*n_layer),0], [0, np.exp(1j*2*np.pi*wl_num*d/2*n_layer)] ] 
-        N_total = np.dot(np.dot(N3,N2),N1)
-        r = -N_total[1,0]/N_total[1,1]*u0
-        t = N_total[0,0]*u0 + N_total[0,1]*r
-        Ans_R[i] = abs(r)**2
-        Ans_T[i] = abs(t)**2
-        i+=1
+    # for wl_num in wl_nums:
+    #     U, U_pos, U_neg, n ,x = solve(n_function,1/wl_num,
+    #                             theta1,
+    #                             x_min,x_max,dx,
+    #                             u0,
+    #                             n1,
+    #                             n2,
+    #                             n_layer,
+    #                             pad,
+    #                             )
+    #     # R,T = calculate_RT(n1,n2,U_pos,U_neg,u0,x_min,x_max,pad,dx)
+    #     R = averaging((abs(U_neg[0:int(np.floor(abs(x_min+pad-x_min)/dx))]))**2)/u0**2
+    #     T = n2*averaging(abs(U_pos[int(np.ceil(abs(x_max-pad+pad)/dx)) : len(x)-1])**2)/(n1*u0**2)
+    #     Rs[i] = R[0]
+    #     Ts[i] = T[0]
+
+    #     # analytic solution
+    #     N1 = N(n1,n_layer)
+    #     N3 = N(n_layer,n2)
+    #     N2 = [ [np.exp(-1j*2*np.pi*wl_num*d/2*n_layer),0], [0, np.exp(1j*2*np.pi*wl_num*d/2*n_layer)] ] 
+    #     N_total = np.dot(np.dot(N3,N2),N1)
+    #     r = -N_total[1,0]/N_total[1,1]*u0
+    #     t = N_total[0,0]*u0 + N_total[0,1]*r
+    #     Ans_R[i] = abs(r)**2
+    #     Ans_T[i] = abs(t)**2
+    #     i+=1
 
     
-    # ploting(wl_nums,Rs,Ans_R,Ts,Ans_T,x_label="wave number (1/um)",title="Transfer function",filename="T",leg=['R(FDM)','Ans R','T(FDM)','Ans T'])
-    ploting(wl_nums,Rs,Ts,x_label="wave number (1/um)",title="Transfer function",filename="T",leg=['R(FDM)','T(FDM)'])
-  
+    # ploting(wl_nums,Rs,Ans_R,x_label="wave number (1/um)",title="Transfer function",filename="R",leg=['R(FDM)','Ans R'])
+    # ploting(wl_nums,Ts,Ans_T,x_label="wave number (1/um)",title="Transfer function",filename="T",leg=['T(FDM)','Ans T'])
     
     
