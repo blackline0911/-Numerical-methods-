@@ -58,24 +58,17 @@ def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
     n = create_n(n_function,x,x_min,x_max,*args)
 
     M = np.zeros((N,N)) + 1j*np.zeros((N,N))
-
     for i in range(1,N-1):
         for j in range(N):
             if i==j:
                 M[i,j] = -2/dx**2 + n[j]**2*k0**2-ky**2
             if j==i+1 :
                 M[i,j] = 1/dx**2
-            if j==i-1 :
-                M[i,j] = 1/dx**2
-    # M[0,0] = 1/2 + 1/(dx*2*1j*kx*n[0])
-    # M[0,1] = -1/(dx*2*1j*kx*n[0])
-    # M[0,2] = 0
+            if j==i-1 : 
+                M[i,j] = 1/dx**2    
     M[0,0] = 1/2 + 3/(2*dx*2*1j*kx*n[0])
     M[0,1] = -4/(2*dx*2*1j*kx*n[0])
     M[0,2] = 1/(2*dx*2*1j*kx*n[0])
-    # M[N-1,N-3] = 0
-    # M[N-1,N-2] = -1/(dx*2*1j*kx*n[N-1])
-    # M[N-1,N-1] = 1/2 + 1/(dx*2*1j*kx*n[N-1])
     M[N-1,N-3] = 1/(2*dx*2*1j*kx*n[N-1])
     M[N-1,N-2] = -4/(2*dx*2*1j*kx*n[N-1])
     M[N-1,N-1] = 1/2 + 3/(2*dx*2*1j*kx*n[N-1])
