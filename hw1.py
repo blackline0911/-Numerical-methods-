@@ -67,9 +67,15 @@ def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
                 M[i,j] = 1/dx**2
             if j==i-1 :
                 M[i,j] = 1/dx**2
+    # M[0,0] = 1/2 + 1/(dx*2*1j*kx*n[0])
+    # M[0,1] = -1/(dx*2*1j*kx*n[0])
+    # M[0,2] = 0
     M[0,0] = 1/2 + 3/(2*dx*2*1j*kx*n[0])
     M[0,1] = -4/(2*dx*2*1j*kx*n[0])
     M[0,2] = 1/(2*dx*2*1j*kx*n[0])
+    # M[N-1,N-3] = 0
+    # M[N-1,N-2] = -1/(dx*2*1j*kx*n[N-1])
+    # M[N-1,N-1] = 1/2 + 1/(dx*2*1j*kx*n[N-1])
     M[N-1,N-3] = 1/(2*dx*2*1j*kx*n[N-1])
     M[N-1,N-2] = -4/(2*dx*2*1j*kx*n[N-1])
     M[N-1,N-1] = 1/2 + 3/(2*dx*2*1j*kx*n[N-1])
@@ -79,6 +85,7 @@ def solve(n_function,wl,theta,x_min,x_max,dx,u0,*args):
     F[0] = u0
 
     U = np.linalg.solve(M, F)
+    # U = np.dot( np.linalg.inv(M) ,F)
 
     kx_pround = kx*n
     du_dx = np.zeros((N,1)) + 1j* np.zeros((N,1))
@@ -106,11 +113,11 @@ if __name__=='__main__':
     wl = 1.5
     theta1 = 0
     n1 = 1.0
-    n2 = 3.0
+    n2 = 1.0
     # n2 = 1.0
     d = 5.0
     dx = 0.0025
-    pad = d/2+d/4
+    pad = d/4
     u0 = 1
     x_min = -pad
     x_max = d/2+pad
