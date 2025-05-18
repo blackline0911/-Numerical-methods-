@@ -1,69 +1,100 @@
 from utility import *
 import numpy as np
 from math import *
-from numpy.linalg import inv
 import matplotlib.pyplot as plt
 
-g0 = 0.0
-dr = 0.0
-di = 1.0
-kr = 0.0
-ki = 1.0
-l0 = 0.0
+# Setting physical simulation arguments
+dt = 0.01           # minimum time resolution
+Num = 100
+dT = dt*Num         # Round trip resolution
+n = 512*Num         #Time array length
+nT = 1000           #Round Trip array length
+g0 = 4.0            #Gain Coefficient
+Es = 0.5            #Saturation absorber Rate
+A0 = 1.0            # Input Optical Field Amplitude
+iter = 2            #iteration number of Split Step
+kc = 0.0+1.0*1j     #Kerr effect Coefficient
+dc = 0.05+0.5*1j     #Dispersion Coefficient
+dw = 2*np.pi/(n*dt) # Minimum Radian Frequency Step 
+L0 = 1.0            #Amplitude Loss Coefficient
+wM = 2*np.pi/100
+M = 0.8
 
-dz = 0.05
-dt = 0.05
-Nt = 500+2
-nz = 200
 
-Ln = np.zeros((Nt,1)) + 1j*np.zeros((Nt,1))
-t = np.linspace(-dt*Nt/2,dt*Nt/2,Nt)
-z = np.linspace(0,dz*nz,nz)
-u0 = 1
-NL = (ki-1j*kr)
-U =  u0*1/np.cosh(t)*np.exp(1j*z[0]/2)
-U.reshape(Nt,1)
-def B(U,dz,dt,Ln):
-    B1 = np.zeros((Nt,1)) + 1j*np.zeros((Nt,1))
-    B1[0]  = U[0] - dz/2*Ln[0]*U[0] + 1j*di*dz/(4*dt**2)*(U[1]-2*U[0]+0) + NL*1j*dz/2*np.conj(U[0])*U[0]*U[0]
-    B1[-1] = U[-1] - dz/2*Ln[-1]*U[-1] + 1j*di*dz/(4*dt**2)*(0-2*U[-1]+U[-2]) + NL*1j*dz/2*np.conj(U[-1])*U[-1]*U[-1]
-    for i in range(1,len(U)-1):
-        B1[i] = U[i] - dz/2*Ln[i]*U[i] + 1j*di*dz/(4*dt**2)*(U[i+1]-2*U[i]+U[i-1]) + NL*1j*dz/2*np.conj(U[i])*U[i]*U[i]
-    return B1
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# Creating t and T array
 
-def update(U0,U1,Ln,dt,dz,Nt):
-    B0 = B(U0,dz,dt,Ln)
-    M = np.zeros((Nt,Nt)) + 1j*np.zeros((Nt,Nt))
-    M[0,0] = 1 + dz/2*Ln[0] - 1j*di*dz/(4*dt**2)*(-2) - NL*1j*dz/2*np.conj(U1[0])*U1[0]
-    M[0,1] = (-1j*di*dz/(4*dt**2))
-    M[Nt-1,Nt-1] = 1 + dz/2*Ln[Nt-1] - 1j*di*dz/(4*dt**2)*(-2) - NL*1j*dz/2*np.conj(U1[Nt-1])*U1[Nt-1]
-    M[Nt-1,Nt-2] = (-1j*di*dz/(4*dt**2))
+def creat_array(N,dx,start = 0):
+    array = np.zeros(abs(N))
+    if N>0:
+        step = 1
+    else:
+        step = -1
+    for i in range(0,N,step):
+        array[abs(i)] = i*dx + start*dx
+    return array
+t = creat_array(n,dt)-n*dt/2   # Time center at t=0
+T = creat_array(nT,dT)
 
-    for i in range(1,Nt-1):
-        for j in range(Nt):
-            if i==j:
-                M[i,j] = 1 + dz/2*Ln[i] - 1j*di*dz/(4*dt**2)*(-2) - NL*1j*dz/2*np.conj(U1[i])*U1[i]
-            if i==j-1:
-                M[i,j] = (-1j*di*dz/(4*dt**2))
-            if i==j+1:
-                M[i,j] = (-1j*di*dz/(4*dt**2))
-    return np.linalg.solve(M, B0)
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# Setting dispersion phase shift
 
-def step(U0,L0,dt,dz,Nt):
-    U1 = update(U0,U0,L0,dt,dz,Nt)
-    U1 = update(U0,U1,L0,dt,dz,Nt)
-    return U1
+u0 = A0*(1/np.cosh(t)) + 0.0*1j                         #Initial Solution at t=0 
+wpos = np.exp(-dc*dT*creat_array(int(n/2),dw)**2)
+wneg = np.exp(-dc*dT*creat_array(-int(n/2),dw,start = -1)**2)
+pshift = np.append(np.flip(wneg),wpos)
 
-U_record = np.zeros((Nt,nz)) + 1j*np.zeros((Nt,nz))
-for i in range(nz):
-    for j in range(Nt):
-        U_record[j,i] = U[j]
-    U = step(U,Ln,dt,dz,Nt)
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# Writing split-step function
+def stepfft(u0:np.ndarray,
+            pshift:np.ndarray,
+            dT:float,dt:float,
+            n:float,g0:float,Es:float,
+            kc:np.complex128,L0:float,iter:int):
+    u1 = u0
 
+    # Process integration of saturate absorber
+    Ep = 0
+    Ep = np.sum(abs(u1)**2,dtype=np.complex128) *dt
+    g = g0/(1+Ep/Es)
+
+    # Process FFT
+    B = (g + kc*abs(u1)**2 - L0 + 1j*M*np.cos(wM*t))
+    F = 1/n*np.fft.fft(u1*(1 + B*dT/2 ))
+    F = np.fft.fftshift(F)
+    F = pshift * F
+    F_temp = np.fft.ifftshift(F)
+    u1 = n*np.fft.ifft(F_temp)
+    utemp = u1
+
+    # Processing Split-step
+    j = 0
+    while (j<iter):
+        # 需要重新計算U(T+dT)**2的積分
+        Ep = 0
+        Ep = np.sum(abs(u1)**2,dtype=np.complex128) *dt
+        g = g0/(1+Ep/Es)
+        u1 = utemp / (1-dT/2* ( g - L0 + kc*abs(u1)**2 + 1j*M*np.cos(wM*t)) )
+        j += 1
+    return u1 
+
+U_record = np.zeros((nT,n)) + np.zeros((nT,n)) *1j
+U_record[0,:] = u0 
+for r in range(1,nT):
+    u0 = stepfft(u0,pshift,dT,dt,n,g0,Es,kc,L0,iter)
+    U_record[r,:] = u0
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-T, Z = np.meshgrid(t, z)
-ax.plot_surface(T,Z,np.transpose(abs(U_record)**2))
+Z_big, T_big = np.meshgrid(T, t)
+ax.plot_surface(T_big,Z_big,np.transpose(abs(U_record)**2))
 plt.xlabel("time")
-plt.ylabel("z")
+plt.ylabel("Round Trip (T)")
 plt.show()
+
+ploting(T,abs(U_record[:,int(n/2-1)])**2,x_label=":Round Trip (T)",title="|U|^2 at t=0")
+
+
+

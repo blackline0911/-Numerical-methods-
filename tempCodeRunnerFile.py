@@ -1,2 +1,2 @@
-
-Up = np.zeros(N-2)
+t.plot(abs(u1)**2)
+    plt.show()

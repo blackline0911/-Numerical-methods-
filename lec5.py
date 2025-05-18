@@ -13,7 +13,7 @@ Ln = np.zeros((Nt,1)) + 1j*np.zeros((Nt,1))
 t = np.linspace(-dt*Nt/2,dt*Nt/2,Nt)
 z = np.linspace(0,dz*nz,nz)
 u0 = 1
-NL = 1
+NL = 1.0
 U =  u0*1/np.cosh(t)*np.exp(1j*z[0]/2)
 U.reshape(Nt,1)
 def B(U,dz,dt,Ln):
@@ -51,6 +51,8 @@ U_record = np.zeros((Nt,nz)) + 1j*np.zeros((Nt,nz))
 for i in range(nz):
     for j in range(Nt):
         U_record[j,i] = U[j]
+    # plt.plot(U)
+    # plt.show()
     U = step(U,Ln,dt,dz,Nt)
 
 
