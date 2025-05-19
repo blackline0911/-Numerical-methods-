@@ -4,8 +4,8 @@ from math import *
 import matplotlib.pyplot as plt
 
 # Setting physical simulation arguments
-dt = 0.01           # minimum time resolution
-Num = 100
+dt = 0.05           # minimum time resolution
+Num = 1
 dT = dt*Num         # Round trip resolution
 n = 512*Num         #Time array length
 nT = 1000           #Round Trip array length
@@ -18,7 +18,7 @@ dc = 0.05+0.5*1j     #Dispersion Coefficient
 dw = 2*np.pi/(n*dt) # Minimum Radian Frequency Step 
 L0 = 1.0            #Amplitude Loss Coefficient
 wM = 2*np.pi/100
-M = 0.8
+M = 0.0
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
